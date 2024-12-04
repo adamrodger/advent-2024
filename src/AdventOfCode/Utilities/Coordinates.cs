@@ -66,6 +66,14 @@ namespace AdventOfCode.Utilities
         };
 
         public int ManhattanDistance(Point2D other) => Math.Abs(this.X - other.X) + Math.Abs(this.Y -other.Y);
+
+        /// <summary>
+        /// Make sure the current point is in bounds of the grid
+        /// </summary>
+        /// <typeparam name="T">Grid type</typeparam>
+        /// <param name="grid">Grid</param>
+        /// <returns>Point is still in bounds</returns>
+        public bool InBounds<T>(T[,] grid) => this.X >= 0 && this.X < grid.GetLength(1) && this.Y >= 0 && this.Y < grid.GetLength(0);
     }
 
     public readonly record struct Point3D(int X, int Y, int Z)
