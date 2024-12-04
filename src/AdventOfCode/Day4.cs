@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using AdventOfCode.Utilities;
 
@@ -14,16 +13,16 @@ namespace AdventOfCode
         {
             char[,] grid = input.ToGrid();
 
-            (Bearing, Bearing?)[] directions =
+            Bearing[] directions =
             [
-                (Bearing.North, null),
-                (Bearing.North, Bearing.East),
-                (Bearing.East, null),
-                (Bearing.South, Bearing.East),
-                (Bearing.South, null),
-                (Bearing.South, Bearing.West),
-                (Bearing.West, null),
-                (Bearing.North, Bearing.West)
+                Bearing.North,
+                Bearing.NorthEast,
+                Bearing.East,
+                Bearing.SouthEast,
+                Bearing.South,
+                Bearing.SouthWest,
+                Bearing.West,
+                Bearing.NorthWest
             ];
 
             int total = 0;
@@ -34,7 +33,7 @@ namespace AdventOfCode
                 {
                     Point2D point = (x, y);
 
-                    total += directions.Select(d => Slice(grid, point, d.Item1, d.Item2))
+                    total += directions.Select(d => grid.Slice(point, d, 4))
                                        .Count(slice => slice.SequenceEqual("XMAS"));
                 }
             }
@@ -55,6 +54,11 @@ namespace AdventOfCode
             {
                 for (int x = 1; x < grid.GetLength(1); x++)
                 {
+                    if (grid[y, x] != 'A')
+                    {
+                        continue;
+                    }
+
                     Point2D point = (x, y);
 
                     char[] slice = deltas.Select(d => point + d)
@@ -67,38 +71,6 @@ namespace AdventOfCode
             }
 
             return total;
-        }
-
-        /// <summary>
-        /// Take a slice of the grid along a given bearing
-        /// </summary>
-        /// <param name="grid">Grid</param>
-        /// <param name="current">Start point</param>
-        /// <param name="bearing">Bearing</param>
-        /// <param name="otherBearing">Other bearing, for moving diagonally</param>
-        /// <param name="size">Size of the slice</param>
-        /// <returns>Slice of the grid</returns>
-        private static IEnumerable<char> Slice(char[,] grid, Point2D current, Bearing bearing, Bearing? otherBearing, int size = 4)
-        {
-            yield return grid[current.Y, current.X];
-
-            for (int i = 0; i < size - 1; i++)
-            {
-                current = current.Move(bearing);
-
-                // TODO: Add diagonal bearings to utility methods so this can be done in a single operation
-                if (otherBearing.HasValue)
-                {
-                    current = current.Move(otherBearing.Value);
-                }
-
-                if (!current.InBounds(grid))
-                {
-                    yield break;
-                }
-
-                yield return grid[current.Y, current.X];
-            }
         }
     }
 }

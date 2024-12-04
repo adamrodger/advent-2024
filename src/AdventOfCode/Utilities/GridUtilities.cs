@@ -316,4 +316,33 @@ public static class GridUtilities
             }
         }
     }
+
+    /// <summary>
+    /// Take a slice of the grid from a given start point along a given bearing
+    /// </summary>
+    /// <remarks>
+    /// If the slice hits the edge of the grid then it will stop yielding, and thus the
+    /// final result may be smaller than the requested size
+    /// </remarks>
+    /// <param name="grid">Grid</param>
+    /// <param name="current">Start point</param>
+    /// <param name="bearing">Bearing</param>
+    /// <param name="size">Size of the slice</param>
+    /// <returns>Slice of the grid</returns>
+    public static IEnumerable<T> Slice<T>(this T[,] grid, Point2D current, Bearing bearing, int size)
+    {
+        yield return grid[current.Y, current.X];
+
+        for (int i = 0; i < size - 1; i++)
+        {
+            current = current.Move(bearing);
+
+            if (!current.InBounds(grid))
+            {
+                yield break;
+            }
+
+            yield return grid[current.Y, current.X];
+        }
+    }
 }

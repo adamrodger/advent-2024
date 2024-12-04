@@ -62,6 +62,10 @@ namespace AdventOfCode.Utilities
             Bearing.South => (this.X, this.Y + steps),
             Bearing.East => (this.X + steps, this.Y),
             Bearing.West => (this.X - steps, this.Y),
+            Bearing.NorthEast => (this.X + steps, this.Y - steps),
+            Bearing.NorthWest => (this.X - steps, this.Y - steps),
+            Bearing.SouthEast => (this.X + steps, this.Y + steps),
+            Bearing.SouthWest => (this.X - steps, this.Y + steps),
             _ => throw new ArgumentOutOfRangeException()
         };
 

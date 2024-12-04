@@ -5,7 +5,7 @@ namespace AdventOfCode.Utilities
     /// <summary>
     /// Compass bearing
     /// </summary>
-    public enum Bearing { North, South, East, West };
+    public enum Bearing { North, South, East, West, NorthEast, NorthWest, SouthEast, SouthWest };
 
     /// <summary>
     /// Turn direction
