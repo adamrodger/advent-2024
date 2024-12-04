@@ -31,6 +31,11 @@ namespace AdventOfCode
             {
                 for (int x = 0; x < grid.GetLength(1); x++)
                 {
+                    if (grid[y, x] != 'X')
+                    {
+                        continue;
+                    }
+
                     Point2D point = (x, y);
 
                     total += directions.Select(d => grid.Slice(point, d, 4))
