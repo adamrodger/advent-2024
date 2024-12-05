@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AdventOfCode.Utilities;
 
 namespace AdventOfCode
 {
@@ -12,97 +11,66 @@ namespace AdventOfCode
     {
         public int Part1(string[] input)
         {
-            var precedence = new Dictionary<int, HashSet<int>>();
-            var pages = new List<int[]>();
-            bool rules = true;
+            (ICollection<int[]> pages, ICollection<int[]> ordered) = Parse(input);
 
-            foreach (string line in input)
-            {
-                if (string.IsNullOrEmpty(line))
-                {
-                    rules = false;
-                    continue;
-                }
-
-                if (rules)
-                {
-                    var n = line.Numbers<int>();
-                    precedence.GetOrCreate(n[0], () => new HashSet<int>()).Add(n[1]);
-                }
-                else
-                {
-                    pages.Add(line.Numbers<int>());
-                }
-            }
-
-            var foo = precedence.ToDictionary(p => p.Key, p => p.Value.ToArray());
-
-            return pages.Where(p => IsValid(p, foo))
-                        .Select(p => p[p.Length / 2])
+            return pages.Zip(ordered)
+                        .Where(p => p.First.SequenceEqual(p.Second))
+                        .Select(p => p.First[p.First.Length / 2])
                         .Sum();
         }
 
         public int Part2(string[] input)
         {
-            var precedence = new Dictionary<int, HashSet<int>>();
-            var pages = new List<int[]>();
-            bool rules = true;
+            (ICollection<int[]> pages, ICollection<int[]> ordered) = Parse(input);
+
+            return pages.Zip(ordered)
+                        .Where(p => !p.First.SequenceEqual(p.Second))
+                        .Select(p => p.Second[p.Second.Length / 2])
+                        .Sum();
+        }
+
+        /// <summary>
+        /// Parse the input
+        /// </summary>
+        /// <param name="input">Input</param>
+        /// <returns>Original ordering for each page collection, and an ordered version (which may be the same)</returns>
+        private static (ICollection<int[]> Pages, ICollection<int[]> SortedPages) Parse(string[] input)
+        {
+            var precedence = new HashSet<(int X, int Y)>();
+            int linesParsed = 0;
 
             foreach (string line in input)
             {
+                linesParsed++;
+
                 if (string.IsNullOrEmpty(line))
                 {
-                    rules = false;
-                    continue;
+                    // there's a blank line between the rules and the page orderings
+                    break;
                 }
 
-                if (rules)
-                {
-                    var n = line.Numbers<int>();
-                    precedence.GetOrCreate(n[0], () => new HashSet<int>()).Add(n[1]);
-                }
-                else
-                {
-                    pages.Add(line.Numbers<int>());
-                }
+                int separator = line.IndexOf('|');
+                int left = int.Parse(line[..separator]);
+                int right = int.Parse(line[(separator + 1)..]);
+
+                precedence.Add((left, right));
             }
 
-            var foo = precedence.ToDictionary(p => p.Key, p => p.Value.ToArray());
+            var pages = input.Skip(linesParsed)
+                             .Select(p => p.Split(',').Select(int.Parse).ToArray())
+                             .ToArray();
 
-            var comparer = new PageComparer(foo);
-            var invalid = pages.Where(p => !IsValid(p, foo));
-            int total = 0;
+            var comparer = new PageComparer(precedence);
+            var ordered = pages.Select(p => p.OrderBy(x => x, comparer).ToArray()).ToArray();
 
-            foreach (int[] page in invalid)
-            {
-                Array.Sort(page, comparer);
-                total += page[page.Length / 2];
-            }
-
-            return total;
+            return (pages, ordered);
         }
 
-        private static bool IsValid(int[] pages, Dictionary<int, int[]> precedence)
-        {
-            for (int i = 1; i < pages.Length; i++)
-            {
-                if (!precedence.TryGetValue(pages[i], out int[] banned))
-                {
-                    continue;
-                }
-
-                ReadOnlySpan<int> slice = pages.AsSpan(0, i);
-
-                if (slice.ContainsAny(banned))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private class PageComparer(IDictionary<int, int[]> precedence) : IComparer<int>
+        /// <summary>
+        /// Compares page numbers according to the precedence rules
+        /// </summary>
+        /// <param name="precedence">Page precedence rules</param>
+        private class PageComparer(ISet<(int X, int Y)> precedence) : IComparer<int>
         {
             /// <summary>Compares two objects and returns a value indicating whether one is less than, equal to, or greater than the other.</summary>
             /// <param name="x">The first object to compare.</param>
@@ -111,12 +79,12 @@ namespace AdventOfCode
             /// <list type="table"><listheader><term> Value</term><description> Meaning</description></listheader><item><term> Less than zero</term><description><paramref name="x" /> is less than <paramref name="y" />.</description></item><item><term> Zero</term><description><paramref name="x" /> equals <paramref name="y" />.</description></item><item><term> Greater than zero</term><description><paramref name="x" /> is greater than <paramref name="y" />.</description></item></list></returns>
             public int Compare(int x, int y)
             {
-                if (precedence.TryGetValue(x, out int[] banned) && banned.Contains(y))
+                if (precedence.Contains((x, y)))
                 {
                     return -1;
                 }
 
-                if (precedence.TryGetValue(y, out banned) && banned.Contains(x))
+                if (precedence.Contains((y, x)))
                 {
                     return 1;
                 }
