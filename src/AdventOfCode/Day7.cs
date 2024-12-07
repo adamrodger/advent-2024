@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using AdventOfCode.Utilities;
 
 namespace AdventOfCode
@@ -10,91 +9,48 @@ namespace AdventOfCode
     /// </summary>
     public class Day7
     {
-        public long Part1(string[] input)
+        public long Part1(string[] input) => TotalPossible(input, Part.One);
+        public long Part2(string[] input) => TotalPossible(input, Part.Two);
+
+        /// <summary>
+        /// Sum the target for all sums that are possible in the input
+        /// </summary>
+        /// <param name="input">Input</param>
+        /// <param name="part">Part, used to determine the allowed operation</param>
+        /// <returns>Sum of all possible targets</returns>
+        private static long TotalPossible(string[] input, Part part)
         {
-            long total = 0;
-
-            foreach (string line in input)
-            {
-                long[] n = line.Numbers<long>();
-
-                foreach (long sum in PossibleSums(n[2..], n[1]))
-                {
-                    if (sum == n[0])
-                    {
-                        total += n[0];
-                        break;
-                    }
-                }
-            }
-
-            // 4_613_169_492 low
-            return total;
+            return input.Select(line => line.Numbers<long>())
+                        .Where(n => PossibleSums(part, n[2..], n[1]).Any(sum => sum == n[0]))
+                        .Sum(n => n[0]);
         }
 
-        public BigInteger Part2(string[] input)
-        {
-            BigInteger total = 0;
-
-            foreach (string line in input)
-            {
-                long[] n = line.Numbers<long>();
-
-                foreach (long sum in PossibleSums2(n[2..], n[1]))
-                {
-                    if (sum == n[0])
-                    {
-                        total += n[0];
-                        break;
-                    }
-                }
-            }
-
-            // 482739998262825 low
-
-            // 492383931650959
-            return total;
-        }
-
-        private static IEnumerable<long> PossibleSums(long[] slice, long total)
-        {
-            if (slice.Length == 1)
-            {
-                yield return total + slice[0];
-                yield return total * slice[0];
-                yield break;
-            }
-
-            IEnumerable<long> adds = PossibleSums(slice[1..], total + slice[0]);
-            IEnumerable<long> multiplies = PossibleSums(slice[1..], total * slice[0]);
-
-            foreach (long next in adds.Concat(multiplies))
-            {
-                yield return next;
-            }
-        }
-
-        private static IEnumerable<long> PossibleSums2(long[] slice, long total)
+        /// <summary>
+        /// Check the number of possible totals from the given starting position
+        /// </summary>
+        /// <param name="part">Part, to determine the allowed operations</param>
+        /// <param name="slice">Remaining numbers</param>
+        /// <param name="total">Running total</param>
+        /// <returns>All possible sums, using the allowed operations for the problem part</returns>
+        private static IEnumerable<long> PossibleSums(Part part, long[] slice, long total)
         {
             if (slice.Length == 0)
             {
-                yield return total;
-                yield break;
+                return [total];
             }
 
-            IEnumerable<long> adds = PossibleSums2(slice[1..], total + slice[0]);
-            IEnumerable<long> multiplies = PossibleSums2(slice[1..], total * slice[0]);
-            IEnumerable<long> concats = PossibleSums2(slice[1..], Concat(total, slice[0]));
+            long[] nextSlice = slice[1..];
 
-            foreach (long next in adds.Concat(multiplies).Concat(concats))
+            IEnumerable<long> possible = PossibleSums(part, nextSlice, total + slice[0]);
+            possible = possible.Concat(PossibleSums(part, nextSlice, total * slice[0]));
+
+            if (part == Part.Two)
             {
-                yield return next;
+                long concat = long.Parse($"{total}{slice[0]}");
+                possible = possible.Concat(PossibleSums(part, nextSlice, concat));
             }
 
-            long Concat(long x, long y)
-            {
-                return long.Parse(x.ToString() + y.ToString());
-            }
+            return possible;
         }
     }
 }
