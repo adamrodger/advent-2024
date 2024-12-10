@@ -345,4 +345,48 @@ public static class GridUtilities
             yield return grid[current.Y, current.X];
         }
     }
+
+    /// <summary>
+    /// Enumerate all points on the grid
+    /// </summary>
+    /// <typeparam name="T">Grid type</typeparam>
+    /// <param name="grid">Grid</param>
+    /// <returns>All points</returns>
+    public static IEnumerable<Point2D> Points<T>(this T[,] grid)
+    {
+        for (int y = 0; y < grid.GetLength(0); y++)
+        {
+            for (int x = 0; x < grid.GetLength(1); x++)
+            {
+                yield return (x, y);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Enumerate all points and values on the grid
+    /// </summary>
+    /// <typeparam name="T">Grid type</typeparam>
+    /// <param name="grid">Grid</param>
+    /// <returns>All points</returns>
+    public static IEnumerable<(Point2D Point, T Value)> Select<T>(this T[,] grid)
+    {
+        for (int y = 0; y < grid.GetLength(0); y++)
+        {
+            for (int x = 0; x < grid.GetLength(1); x++)
+            {
+                yield return ((x, y), grid[y, x]);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get the grid element at the given point
+    /// </summary>
+    /// <typeparam name="T">Grid type</typeparam>
+    /// <param name="grid">Grid</param>
+    /// <param name="point">Point</param>
+    /// <returns>Element at point</returns>
+    public static T At<T>(this T[,] grid, Point2D point)
+        => grid[point.Y, point.X];
 }
