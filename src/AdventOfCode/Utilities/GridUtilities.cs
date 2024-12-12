@@ -389,4 +389,14 @@ public static class GridUtilities
     /// <returns>Element at point</returns>
     public static T At<T>(this T[,] grid, Point2D point)
         => grid[point.Y, point.X];
+
+    /// <summary>
+    /// Get the grid element at the given point
+    /// </summary>
+    /// <typeparam name="T">Grid type</typeparam>
+    /// <param name="grid">Grid</param>
+    /// <param name="point">Point</param>
+    /// <returns>Element at point</returns>
+    public static T AtOrDefault<T>(this T[,] grid, Point2D point)
+        => point.InBounds(grid) ? grid[point.Y, point.X] : default;
 }
