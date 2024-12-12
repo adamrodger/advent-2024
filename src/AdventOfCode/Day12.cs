@@ -12,30 +12,26 @@ namespace AdventOfCode
         public int Part1(string[] input)
         {
             var grid = input.ToGrid();
+            List<(char Id, HashSet<Point2D> Points)> regions = CalculateRegions(grid);
 
-            HashSet<Point2D> claimed = [];
-            List<(char, HashSet<Point2D>)> regions = [];
-
-            foreach (Point2D point in grid.Points())
-            {
-                if (claimed.Contains(point))
-                {
-                    continue;
-                }
-
-                HashSet<Point2D> region = FindRegion(grid, point);
-                claimed.UnionWith(region);
-                regions.Add((grid.At(point), region));
-            }
-
-            // 973268 low
-            return regions.Select(r => r.Item2.Count * FindPerimeter(grid, r.Item1, r.Item2)).Sum();
+            return regions.Select(r => r.Points.Count * CountPerimeter(grid, r.Id, r.Points)).Sum();
         }
 
         public int Part2(string[] input)
         {
             var grid = input.ToGrid();
+            List<(char Id, HashSet<Point2D> Points)> regions = CalculateRegions(grid);
 
+            return regions.Select(r => r.Points.Count * CountSides(grid, r.Id, r.Points)).Sum();
+        }
+
+        /// <summary>
+        /// Calculate the disjoint contiguous regions in the grid
+        /// </summary>
+        /// <param name="grid">Grid</param>
+        /// <returns>Regions, with ID and points within the region</returns>
+        private static List<(char Id, HashSet<Point2D> Points)> CalculateRegions(char[,] grid)
+        {
             HashSet<Point2D> claimed = [];
             List<(char, HashSet<Point2D>)> regions = [];
 
@@ -51,13 +47,18 @@ namespace AdventOfCode
                 regions.Add((grid.At(point), region));
             }
 
-            // 885869 low
-            return regions.Select(r => r.Item2.Count * FindSides(grid, r.Item1, r.Item2)).Sum();
+            return regions;
         }
 
+        /// <summary>
+        /// Find the region starting at the given point
+        /// </summary>
+        /// <param name="grid">Grid</param>
+        /// <param name="start">Start point</param>
+        /// <returns>All points within the same region as the start point</returns>
         private static HashSet<Point2D> FindRegion(char[,] grid, Point2D start)
         {
-            var id = grid.At(start);
+            char id = grid.At(start);
 
             var region = new HashSet<Point2D> { start };
             var queue = new Queue<Point2D>(region);
@@ -83,8 +84,16 @@ namespace AdventOfCode
             return region;
         }
 
-        private static int FindPerimeter(char[,] grid, char id, HashSet<Point2D> region)
+        /// <summary>
+        /// Count the perimeter of a region
+        /// </summary>
+        /// <param name="grid">Grid</param>
+        /// <param name="id">Region ID</param>
+        /// <param name="region">Region points</param>
+        /// <returns>Perimeter size</returns>
+        private static int CountPerimeter(char[,] grid, char id, HashSet<Point2D> region)
         {
+            // the same point can count multiple times as long as it was reached from a different direction
             var perimeter = region.SelectMany(Adjacent)
                                   .Where(p => !p.Point.InBounds(grid) || grid.At(p.Point) != id)
                                   .ToHashSet();
@@ -92,20 +101,28 @@ namespace AdventOfCode
             return perimeter.Count;
         }
 
-        private static int FindSides(char[,] grid, char id, HashSet<Point2D> region)
+        /// <summary>
+        /// Count the number of sides of a region
+        /// </summary>
+        /// <param name="grid">Grid</param>
+        /// <param name="id">Region ID</param>
+        /// <param name="region">Region points</param>
+        /// <returns>Number of sides</returns>
+        private static int CountSides(char[,] grid, char id, HashSet<Point2D> region)
         {
             int sides = 0;
 
             foreach (Point2D p in region)
             {
-                var above = p + (0, -1);
-                var below = p + (0, 1);
-                var left = p + (-1, 0);
-                var right = p + (1, 0);
-                var topLeft = p + (-1, -1);
-                var topRight = p + (1, -1);
-                var bottomLeft = p + (-1, 1);
-                var bottomRight = p + (1, 1);
+                // check which of the 8 surrounding positions are still in the region
+                bool above = grid.AtOrDefault(p + (0, -1)) == id;
+                bool below = grid.AtOrDefault(p + (0, 1)) == id;
+                bool left = grid.AtOrDefault(p + (-1, 0)) == id;
+                bool right = grid.AtOrDefault(p + (1, 0)) == id;
+                bool topLeft = grid.AtOrDefault(p + (-1, -1)) == id;
+                bool topRight = grid.AtOrDefault(p + (1, -1)) == id;
+                bool bottomLeft = grid.AtOrDefault(p + (-1, 1)) == id;
+                bool bottomRight = grid.AtOrDefault(p + (1, 1)) == id;
 
                 // outer corners
                 // the central point is the corner we're trying to detect
@@ -114,11 +131,10 @@ namespace AdventOfCode
                 //   ...    ...     .##    ##.
                 //   ##.    .##     .##    ##.
                 //   ##.    .##     ...    ...
-
-                if (grid.AtOrDefault(above) != id && grid.AtOrDefault(right) != id) sides++;
-                if (grid.AtOrDefault(above) != id && grid.AtOrDefault(left) != id) sides++;
-                if (grid.AtOrDefault(below) != id && grid.AtOrDefault(left) != id) sides++;
-                if (grid.AtOrDefault(below) != id && grid.AtOrDefault(right) != id) sides++;
+                if (!above && !right) sides++;
+                if (!above && !left) sides++;
+                if (!below && !left) sides++;
+                if (!below && !right) sides++;
 
                 // inner corners
                 // the central point is the corner we're trying to detect
@@ -127,53 +143,26 @@ namespace AdventOfCode
                 //   ##.    .##     ###    ###
                 //   ###    ###     ###    ###
                 //   ###    ###     .##    ##.
-                if (grid.AtOrDefault(above) == id && grid.AtOrDefault(right) == id && topRight.InBounds(grid) && grid.At(topRight) != id) sides++;
-                if (grid.AtOrDefault(above) == id && grid.AtOrDefault(left) == id && topLeft.InBounds(grid) && grid.At(topLeft) != id) sides++;
-                if (grid.AtOrDefault(below) == id && grid.AtOrDefault(left) == id && bottomLeft.InBounds(grid) && grid.At(bottomLeft) != id) sides++;
-                if (grid.AtOrDefault(below) == id && grid.AtOrDefault(right) == id && bottomRight.InBounds(grid) && grid.At(bottomRight) != id) sides++;
+                if (above && right && !topRight) sides++;
+                if (above && left && !topLeft) sides++;
+                if (below && left && !bottomLeft) sides++;
+                if (below && right && !bottomRight) sides++;
             }
 
             return sides;
-
-            //var perimeter = region.SelectMany(Adjacent)
-            //                      .Where(p => !p.Point.InBounds(grid) || grid.At(p.Point) != id)
-            //                      .ToHashSet();
-
-            //var points = perimeter.Select(p => p.Point).ToHashSet();
-
-            //// find the top left corner
-            //var minY = points.Select(p => p.Y).Min();
-            //Point2D start = points.Where(p => p.Y == minY).MinBy(p => p.X);
-
-            //// keeping the region on your right, count the number of times we need to turn (i.e. we hit a corner)
-            //int turns = 0;
-            //Bearing bearing = Bearing.East;
-            //var current = start.Move(bearing);
-
-            //while (current != start)
-            //{
-            //    var next = current.Move(bearing);
-
-            //    if (!points.Contains(next))
-            //    {
-            //        bearing = bearing.Turn(TurnDirection.Right);
-            //        next = next.Move(bearing);
-            //        turns++;
-            //    }
-
-            //    current = next;
-            //}
-
-            //Debug.Assert(turns >= 4);
-            //return turns;
         }
 
+        /// <summary>
+        /// The adjacent 4 positions of a point along with the direction of travel to get there
+        /// </summary>
+        /// <param name="point">Point</param>
+        /// <returns>Next position plus the bearing from the start point</returns>
         private static IEnumerable<(Point2D Point, Bearing Bearing)> Adjacent(Point2D point)
         {
-            yield return (new Point2D(point.X, point.Y - 1), Bearing.North);
-            yield return (new Point2D(point.X - 1, point.Y), Bearing.West);
-            yield return (new Point2D(point.X + 1, point.Y), Bearing.East);
-            yield return (new Point2D(point.X, point.Y + 1), Bearing.South);
+            yield return (point with { Y = point.Y - 1 }, Bearing.North);
+            yield return (point with { X = point.X - 1 }, Bearing.West);
+            yield return (point with { X = point.X + 1 }, Bearing.East);
+            yield return (point with { Y = point.Y + 1 }, Bearing.South);
         }
     }
 }
