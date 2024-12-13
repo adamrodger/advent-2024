@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using AdventOfCode.Utilities;
 using Optional;
 
@@ -14,11 +13,11 @@ namespace AdventOfCode
         {
             int cost = 0;
 
-            foreach (string[] chunk in input.Chunk(4))
+            for (int i = 0; i < input.Length; i += 4)
             {
-                var a = chunk[0].Numbers<int>();
-                var b = chunk[1].Numbers<int>();
-                var p = chunk[2].Numbers<int>();
+                var a = input[i].Numbers<int>();
+                var b = input[i + 1].Numbers<int>();
+                var p = input[i + 2].Numbers<int>();
 
                 cost += MinCost(a[0], a[1], b[0], b[1], p[0], p[1]).ValueOr(0);
             }
@@ -27,22 +26,28 @@ namespace AdventOfCode
             return cost;
         }
 
-        public int Part2(string[] input)
+        public long Part2(string[] input)
         {
-            foreach (string line in input)
+            long cost = 0;
+
+            for (int i = 0; i < input.Length; i += 4)
             {
-                throw new NotImplementedException("Part 2 not implemented");
+                var a = input[i].Numbers<int>();
+                var b = input[i + 1].Numbers<int>();
+                var p = input[i + 2].Numbers<long>();
+
+                cost += MinCost2(a[0], a[1], b[0], b[1], p[0] + 10000000000000, p[1] + 10000000000000).ValueOr(0);
             }
 
-            return 0;
+            return cost;
         }
 
         private static Option<int> MinCost(int ax, int ay, int bx, int by, int px, int py)
         {
             int min = int.MaxValue;
 
-            int maxA = Math.Min(px / ax, py / ay);
-            int maxB = Math.Min(px / bx, py / by);
+            int maxA = Math.Min(px / ax, py / ay) + 1;
+            int maxB = Math.Min(px / bx, py / by) + 1;
 
             for (int a = 0; a < maxA; a++)
             {
@@ -61,6 +66,19 @@ namespace AdventOfCode
             }
 
             return min.SomeWhen(m => m != int.MaxValue);
+        }
+
+        private static Option<long> MinCost2(int ax, int ay, int bx, int by, long px, long py)
+        {
+            long a = (px * by - py * bx) / (ax * by - ay * bx);
+            long b = (ax * py - ay * px) / (ax * by - ay * bx);
+
+            if (a * ax + b * bx == px && a * ay + b * by == py)
+            {
+                return Option.Some(3 * a + b);
+            }
+
+            return Option.None<long>();
         }
     }
 }
