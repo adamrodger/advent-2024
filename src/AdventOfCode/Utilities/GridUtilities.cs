@@ -304,16 +304,18 @@ public static class GridUtilities
     /// </summary>
     /// <param name="input">Input</param>
     /// <param name="action">Processing action</param>
-    public static void ForEach(this IReadOnlyList<string> input, Action<Point2D, char> action)
+    public static void ForEach(this IEnumerable<string> input, Action<Point2D, char> action)
     {
-        for (int y = 0; y < input.Count; y++)
-        {
-            string line = input[y];
+        int y = 0;
 
+        foreach (string line in input)
+        {
             for (int x = 0; x < line.Length; x++)
             {
                 action((x, y), line[x]);
             }
+
+            y++;
         }
     }
 
