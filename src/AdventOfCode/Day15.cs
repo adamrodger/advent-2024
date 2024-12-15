@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using AdventOfCode.Utilities;
-using Optional;
-using Optional.Unsafe;
 
 namespace AdventOfCode
 {
@@ -26,8 +24,12 @@ namespace AdventOfCode
                 {
                     case '@': robot = point; break;
                     case '.': break;
-                    case '#': walls.Add(point); break;
-                    case 'O': boxes.Add(new Box { Position = point }); break;
+                    case '#':
+                        walls.Add(point);
+                        break;
+                    case 'O':
+                        boxes.Add(new Box{ Left = point, Right = point });
+                        break;
                     default: throw new ArgumentOutOfRangeException();
                 }
             });
@@ -47,37 +49,25 @@ namespace AdventOfCode
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-                Point2D wall = ClosestWall(robot, walls, bearing);
-                Option<Point2D> space = ClosestSpace(robot, wall, boxes, bearing);
+                var clone = boxes.Select(b => new Box { Left = b.Left, Right = b.Right }).ToList();
 
-                if (!space.HasValue || wall.ManhattanDistance(robot) < space.ValueOrDefault().ManhattanDistance(robot))
+                if (TryMove(robot, bearing, walls, clone))
                 {
-                    // can't move because we'd hit a wall before we hit a space
-                    Print(instruction, width, height, robot, walls, boxes);
-                    continue;
+                    boxes = clone;
+                    robot = robot.Move(bearing);
                 }
 
-                IEnumerable<Box> obstacles = BoxesToPush(robot, space.ValueOrDefault(), boxes, bearing);
-
-                foreach (Box obstacle in obstacles)
-                {
-                    obstacle.Position = obstacle.Position.Move(bearing);
-                }
-
-                robot = robot.Move(bearing);
-
-                Print(instruction, width, height, robot, walls, boxes);
+                Print(instruction, width, height, robot, walls, boxes, Part.One);
             }
 
-            // 1411249 low
-            return boxes.Select(b => b.Position.Y * 100 + b.Position.X).Sum();
+            return boxes.Select(b => b.Left.Y * 100 + b.Left.X).Sum();
         }
 
         public int Part2(string[] input, int width, int height)
         {
             Point2D robot = default;
             HashSet<Point2D> walls = [];
-            List<WideBox> boxes = [];
+            List<Box> boxes = [];
 
             input.Take(height).ForEach((point, c) =>
             {
@@ -92,7 +82,7 @@ namespace AdventOfCode
                         walls.Add(point.Move(Bearing.East));
                         break;
                     case 'O':
-                        boxes.Add(new WideBox { Left = point, Right = point.Move(Bearing.East)});
+                        boxes.Add(new Box { Left = point, Right = point.Move(Bearing.East)});
                         break;
                     default: throw new ArgumentOutOfRangeException();
                 }
@@ -113,31 +103,40 @@ namespace AdventOfCode
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-                var clone = boxes.Select(b => new WideBox { Left = b.Left, Right = b.Right }).ToList();
+                var clone = boxes.Select(b => new Box { Left = b.Left, Right = b.Right }).ToList();
+
                 if (TryMove(robot, bearing, walls, clone))
                 {
                     boxes = clone;
                     robot = robot.Move(bearing);
                 }
 
-                Print(instruction, width * 2, height, robot, walls, boxes);
+                Print(instruction, width, height, robot, walls, boxes, Part.Two);
             }
 
-            // 1422035 high
             return boxes.Select(b => b.Left.Y * 100 + b.Left.X).Sum();
         }
 
-        private bool TryMove(Point2D robot, Bearing bearing, HashSet<Point2D> walls, List<WideBox> boxes)
+        /// <summary>
+        /// Try to move the robot along the given bearing, and if that causes any boxes to need to
+        /// move then move those also, which may cause a cascade of moves
+        /// </summary>
+        /// <param name="robot">Robot starting position</param>
+        /// <param name="bearing">Move bearing</param>
+        /// <param name="walls">Wall positions</param>
+        /// <param name="boxes">Boxes, which will be modified in place</param>
+        /// <returns>Whether the move operation succeeded. If not, the boxes should be discarded as it may be invalid</returns>
+        private static bool TryMove(Point2D robot, Bearing bearing, HashSet<Point2D> walls, List<Box> boxes)
         {
-            Queue<WideBox> queue = new Queue<WideBox>();
-            HashSet<WideBox> moved = new HashSet<WideBox>();
+            Queue<Box> queue = new Queue<Box>();
+            HashSet<Box> moved = [];
 
             // initial move of the robot
-            queue.Enqueue(new WideBox { Left = robot, Right = robot });
+            queue.Enqueue(new Box { Left = robot, Right = robot });
 
             while (queue.Any())
             {
-                WideBox moving = queue.Dequeue();
+                Box moving = queue.Dequeue();
 
                 if (!moved.Add(moving))
                 {
@@ -145,8 +144,7 @@ namespace AdventOfCode
                     continue;
                 }
 
-                moving.Left = moving.Left.Move(bearing);
-                moving.Right = moving.Right.Move(bearing);
+                moving.Move(bearing);
 
                 if (walls.Contains(moving.Left) || walls.Contains(moving.Right))
                 {
@@ -154,110 +152,37 @@ namespace AdventOfCode
                     return false;
                 }
 
-                foreach (WideBox next in boxes.Where(b => b.Left == moving.Left || b.Right == moving.Left || b.Left == moving.Right))
+                foreach (Box next in boxes.Where(b => b.Overlaps(moving)))
                 {
                     // queue anything which now overlaps with the thing that moved
                     queue.Enqueue(next);
                 }
             }
 
+            // managed to move everything that needed to move without hitting a wall
             return true;
         }
 
-        private static Point2D ClosestWall(Point2D start, HashSet<Point2D> walls, Bearing bearing)
-        {
-            switch (bearing)
-            {
-                case Bearing.North:
-                    return walls.Where(w => w.X == start.X && w.Y < start.Y).MaxBy(w => w.Y);
-                case Bearing.South:
-                    return walls.Where(w => w.X == start.X && w.Y > start.Y).MinBy(w => w.Y);
-                case Bearing.East:
-                    return walls.Where(w => w.Y == start.Y && w.X > start.X).MinBy(w => w.X);
-                case Bearing.West:
-                    return walls.Where(w => w.Y == start.Y && w.X < start.X).MaxBy(w => w.X);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(bearing), bearing, null);
-            }
-        }
-
-        private static Option<Point2D> ClosestSpace(Point2D start, Point2D end, List<Box> boxes, Bearing bearing)
-        {
-            while (start != end)
-            {
-                start = start.Move(bearing);
-
-                if (start != end && boxes.All(b => b.Position != start))
-                {
-                    return start.Some();
-                }
-            }
-
-            return Option.None<Point2D>();
-        }
-
-        private static IEnumerable<Box> BoxesToPush(Point2D start, Point2D end, List<Box> boxes, Bearing bearing)
-        {
-            switch (bearing)
-            {
-                case Bearing.North:
-                    return boxes.Where(w => w.Position.X == start.X && w.Position.Y < start.Y && w.Position.Y > end.Y);
-                case Bearing.South:
-                    return boxes.Where(w => w.Position.X == start.X && w.Position.Y > start.Y && w.Position.Y < end.Y);
-                case Bearing.East:
-                    return boxes.Where(w => w.Position.Y == start.Y && w.Position.X > start.X && w.Position.X < end.X);
-                case Bearing.West:
-                    return boxes.Where(w => w.Position.Y == start.Y && w.Position.X < start.X && w.Position.X > end.X);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(bearing), bearing, null);
-            }
-        }
-
-        private static void Print(char move, int width, int height, Point2D robot, HashSet<Point2D> walls, List<Box> boxes)
+        /// <summary>
+        /// Print the state of the grid
+        /// </summary>
+        /// <param name="move">Current move instruction</param>
+        /// <param name="width">Original grid width</param>
+        /// <param name="height">Grid height</param>
+        /// <param name="robot">Robot position</param>
+        /// <param name="walls">Wall positions</param>
+        /// <param name="boxes">Box positions</param>
+        /// <param name="part">Puzzle part - note that part two makes the grid twice as wide</param>
+        private static void Print(char move, int width, int height, Point2D robot, HashSet<Point2D> walls, List<Box> boxes, Part part = Part.One)
         {
             if (!Debugger.IsAttached)
             {
                 return;
             }
 
-            StringBuilder s = new StringBuilder(height * (width * Environment.NewLine.Length));
-
-            for (int y = 0; y < height; y++)
+            if (part == Part.Two)
             {
-                for (int x = 0; x < width; x++)
-                {
-                    Point2D point = (x, y);
-
-                    if (point == robot)
-                    {
-                        s.Append('@');
-                    }
-                    else if (walls.Contains(point))
-                    {
-                        s.Append('#');
-                    }
-                    else if (boxes.Any(b => b.Position == point))
-                    {
-                        s.Append('O');
-                    }
-                    else
-                    {
-                        s.Append('.');
-                    }
-                }
-
-                s.AppendLine();
-            }
-
-            Debug.WriteLine($"Move: {move}:");
-            Debug.WriteLine(s.ToString());
-        }
-
-        private static void Print(char move, int width, int height, Point2D robot, HashSet<Point2D> walls, List<WideBox> boxes)
-        {
-            if (!Debugger.IsAttached)
-            {
-                return;
+                width *= 2;
             }
 
             StringBuilder s = new StringBuilder(height * (width * Environment.NewLine.Length));
@@ -278,9 +203,9 @@ namespace AdventOfCode
                     }
                     else if (boxes.Any(b => b.Left == point))
                     {
-                        s.Append('[');
+                        s.Append(part == Part.One ? 'O' : '[');
                     }
-                    else if (boxes.Any(b => b.Right == point))
+                    else if (part == Part.Two && boxes.Any(b => b.Right == point))
                     {
                         s.Append(']');
                     }
@@ -297,15 +222,60 @@ namespace AdventOfCode
             Debug.WriteLine(s.ToString());
         }
 
-        private class Box
+        /// <summary>
+        /// A box, which is a mutable wrapper around two immutable points
+        /// </summary>
+        /// <remarks>
+        /// In part one, boxes are one wide so left and right are equal. In part two boxes are two units wide
+        /// </remarks>
+        private class Box : IEquatable<Box>
         {
-            public Point2D Position { get; set; }
-        }
-
-        private class WideBox
-        {
+            /// <summary>
+            /// Left side of the box
+            /// </summary>
             public Point2D Left { get; set; }
+
+            /// <summary>
+            /// Right side of the box
+            /// </summary>
             public Point2D Right { get; set; }
+
+            /// <summary>
+            /// Move the box
+            /// </summary>
+            /// <param name="bearing">Move direction</param>
+            public void Move(Bearing bearing)
+            {
+                this.Left = this.Left.Move(bearing);
+                this.Right = this.Right.Move(bearing);
+            }
+
+            /// <summary>
+            /// Check if this box overlaps with the other box
+            /// </summary>
+            /// <param name="other">Other box</param>
+            /// <returns>Boxes overlap</returns>
+            public bool Overlaps(Box other) => this.Left == other.Left || this.Right == other.Left || this.Left == other.Right;
+
+            /// <summary>Indicates whether the current object is equal to another object of the same type.</summary>
+            /// <param name="other">An object to compare with this object.</param>
+            /// <returns>
+            /// <see langword="true" /> if the current object is equal to the <paramref name="other" /> parameter; otherwise, <see langword="false" />.</returns>
+            public bool Equals(Box other)
+            {
+                if (other is null)
+                {
+                    return false;
+                }
+
+                if (ReferenceEquals(this, other))
+                {
+                    return true;
+                }
+
+                return this.Left.Equals(other.Left)
+                    && this.Right.Equals(other.Right);
+            }
         }
     }
 }
