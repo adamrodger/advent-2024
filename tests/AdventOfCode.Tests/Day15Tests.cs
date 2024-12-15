@@ -59,22 +59,32 @@ namespace AdventOfCode.Tests
             Assert.Equal(expected, result);
         }
 
-        [Fact(Skip = "todo")]
+        [Fact]
         public void Part2_SampleInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 618;
 
-            var result = solver.Part2(GetSampleInput());
+            var result = solver.Part2([
+                "#######",
+                "#...#.#",
+                "#.....#",
+                "#..OO@#",
+                "#..O..#",
+                "#.....#",
+                "#######",
+                "",
+                "<vv<<^^<<^^",
+                ], 7, 7);
 
             Assert.Equal(expected, result);
         }
 
-        [Fact(Skip = "todo")]
+        [Fact]
         public void Part2_RealInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = 1404917;
 
-            var result = solver.Part2(GetRealInput());
+            var result = solver.Part2(GetRealInput(), 50, 50);
             output.WriteLine($"Day 15 - Part 2 - {result}");
 
             Assert.Equal(expected, result);
