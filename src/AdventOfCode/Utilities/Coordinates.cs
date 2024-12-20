@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AdventOfCode.Utilities
 {
@@ -69,7 +70,12 @@ namespace AdventOfCode.Utilities
             _ => throw new ArgumentOutOfRangeException()
         };
 
-        public int ManhattanDistance(Point2D other) => Math.Abs(this.X - other.X) + Math.Abs(this.Y -other.Y);
+        /// <summary>
+        /// Get the number of steps it would take to get from this point to the other on a 2D grid
+        /// </summary>
+        /// <param name="other">Other point</param>
+        /// <returns>Distance in steps</returns>
+        public int ManhattanDistance(Point2D other) => Math.Abs(this.X - other.X) + Math.Abs(this.Y - other.Y);
 
         /// <summary>
         /// Make sure the current point is in bounds of the grid
@@ -78,6 +84,24 @@ namespace AdventOfCode.Utilities
         /// <param name="grid">Grid</param>
         /// <returns>Point is still in bounds</returns>
         public bool InBounds<T>(T[,] grid) => this.X >= 0 && this.X < grid.GetLength(1) && this.Y >= 0 && this.Y < grid.GetLength(0);
+
+        /// <summary>
+        /// Get all reachable points within the maximum Manhattan distance
+        /// </summary>
+        /// <param name="distance">Max distance</param>
+        /// <returns>All reachable points</returns>
+        public IEnumerable<Point2D> ReachablePoints(int distance)
+        {
+            foreach (int dy in Enumerable.Range(-distance, distance * 2 + 1))
+            {
+                int stepsLeft = distance - Math.Abs(dy);
+
+                foreach (int dx in Enumerable.Range(-stepsLeft, stepsLeft * 2 + 1))
+                {
+                    yield return new Point2D(this.X + dx, this.Y + dy);
+                }
+            }
+        }
     }
 
     public readonly record struct Point3D(int X, int Y, int Z)
