@@ -73,6 +73,23 @@ namespace AdventOfCode
         ///     | 0 | A |
         ///     +---+---+
         /// </summary>
+        /// <remarks>
+        /// Observed that to be most efficient, you must:
+        /// 
+        /// - move left before up
+        /// - move up before right
+        /// - move right before down (except 2 -> A which is the opposite for some reason)
+        /// - move down before left
+        ///
+        /// You must always take the maximum number of steps in a direction, never zigzagging
+        /// 
+        /// Sometimes it's not possible to follow those rules, because you'd have to pass through the disallowed
+        /// bottom left square, so then we flip the order of horizontal and vertical moves, e.g. A -> 1
+        ///
+        /// I'm leaving all the possibilities in because it's too hard to prove/debug the above. It could be the case
+        /// that my input and the sample inputs just don't exercise some of these, and those may be exceptions like
+        /// the 2 -> A exception that my real input definitely needs.
+        /// </remarks>
         private static string[] NumpadSequences(char start, char end) => (start, end) switch
         {
             ('A', 'A') => [""],
