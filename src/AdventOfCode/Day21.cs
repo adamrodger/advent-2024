@@ -1,7 +1,6 @@
 using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace AdventOfCode
 {
@@ -15,61 +14,52 @@ namespace AdventOfCode
             // 32811 low
             // 163246 high
             // 159558 high
-            return input.Sum(i => int.Parse(i[..^1]) * FewestPresses(i));
+            return input.Sum(i => int.Parse(i[..^1]) * (int)FewestPresses(i, 3));
         }
 
-        public int Part2(string[] input)
+        public long Part2(string[] input)
         {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 2 not implemented");
-            }
-
-            return 0;
+            // 361374212849220 high
+            // 196166290013580 high
+            return input.Sum(i => int.Parse(i[..^1]) * FewestPresses(i, 26));
         }
 
-        private int FewestPresses(ReadOnlySpan<char> sequence)
+        /// <summary>
+        /// Count the fewest number of key presses required to trigger the given sequence of presses
+        /// </summary>
+        /// <param name="sequence">Sequence of key presses to check</param>
+        /// <param name="totalRobots">Total number of robots between you and the numeric pad</param>
+        /// <returns>Number of key presses required</returns>
+        private static long FewestPresses(string sequence, int totalRobots)
+            => Presses(sequence, 0, totalRobots, new Dictionary<(string, int), long>());
+
+        /// <summary>
+        /// Count the fewest number of key presses required to trigger the given sequence of presses
+        /// </summary>
+        /// <param name="sequence">Sequence of key presses to check</param>
+        /// <param name="depth">Current depth, where depth 0 is the numeric pad and every depth after that is a directional pad</param>
+        /// <param name="maxDepth">Maximum depth, which is number of intermediate robots, plus one for the human and one for the numeric pad</param>
+        /// <param name="cache">Cache</param>
+        /// <returns>Number of key presses required</returns>
+        private static long Presses(string sequence, int depth, int maxDepth, Dictionary<(string, int), long> cache)
         {
-            char numpad = 'A';
-            char robot1 = 'A';
-            char robot2 = 'A';
-            char me = 'A';
-            StringBuilder s = new StringBuilder();
-            StringBuilder s1 = new StringBuilder();
-            StringBuilder s2 = new StringBuilder();
-            StringBuilder s3 = new StringBuilder();
-            StringBuilder s4 = new StringBuilder();
-
-            foreach (char c in sequence)
+            if (depth == maxDepth)
             {
-                foreach (char n1 in NumpadSequence(numpad, c).Append('A'))
-                {
-                    foreach (char n2 in DirectionPadSequence(robot1, n1).Append('A'))
-                    {
-                        foreach (char n3 in DirectionPadSequence(robot2, n2).Append('A'))
-                        {
-                            s1.Append(n3);
-                            me = n3;
-                        }
-
-                        s2.Append(n2);
-                        robot2 = n2;
-                    }
-
-                    s3.Append(n1);
-                    robot1 = n1;
-                }
-
-                s4.Append(c);
-                numpad = c;
+                return sequence.Length;
             }
 
-            Debug.WriteLine(s1.ToString());
-            Debug.WriteLine(s2.ToString());
-            Debug.WriteLine(s3.ToString());
-            Debug.WriteLine(s4.ToString());
-            
-            return s1.Length;
+            if (cache.TryGetValue((sequence, depth), out long value))
+            {
+                return value;
+            }
+
+            value = ('A' + sequence).Zip(sequence)
+                                    .Select(pair => depth == 0
+                                                        ? NumpadSequences(pair.First, pair.Second)
+                                                        : DirectionPadSequences(pair.First, pair.Second))
+                                    .Sum(possible => possible.Min(next => Presses(next + 'A', depth + 1, maxDepth, cache)));
+            cache[(sequence, depth)] = value;
+            return value;
         }
 
         /// <summary>
@@ -83,139 +73,139 @@ namespace AdventOfCode
         ///     | 0 | A |
         ///     +---+---+
         /// </summary>
-        private string NumpadSequence(char start, char end) => (start, end) switch
+        private static string[] NumpadSequences(char start, char end) => (start, end) switch
         {
-            ('A', 'A') => "",
-            ('A', '0') => "<",
-            ('A', '1') => "^<<",
-            ('A', '2') => "<^",
-            ('A', '3') => "^",
-            ('A', '4') => "^^<<",
-            ('A', '5') => "<^^",
-            ('A', '6') => "^^",
-            ('A', '7') => "^^^<<",
-            ('A', '8') => "<^^^",
-            ('A', '9') => "^^^",
+            ('A', 'A') => [""],
+            ('A', '0') => ["<"],
+            ('A', '1') => ["^<<"],
+            ('A', '2') => ["<^'", "^<"],
+            ('A', '3') => ["^"],
+            ('A', '4') => ["^^<<"],
+            ('A', '5') => ["<^^", "^^<"],
+            ('A', '6') => ["^^"],
+            ('A', '7') => ["^^^<<"],
+            ('A', '8') => ["<^^^", "^^^<"],
+            ('A', '9') => ["^^^"],
 
-            ('0', 'A') => ">",
-            ('0', '0') => "",
-            ('0', '1') => "^<",
-            ('0', '2') => "^",
-            ('0', '3') => "^>",
-            ('0', '4') => "^^<",
-            ('0', '5') => "^^",
-            ('0', '6') => "^^>",
-            ('0', '7') => "^^^<",
-            ('0', '8') => "^^^",
-            ('0', '9') => ">^^^",
+            ('0', 'A') => [">"],
+            ('0', '0') => [""],
+            ('0', '1') => ["^<"],
+            ('0', '2') => ["^"],
+            ('0', '3') => [">^", "^>"],
+            ('0', '4') => ["^^<"],
+            ('0', '5') => ["^^"],
+            ('0', '6') => [">^^", "^^>"],
+            ('0', '7') => ["^^^<"],
+            ('0', '8') => ["^^^"],
+            ('0', '9') => [">^^^", "^^^>"],
 
-            ('1', 'A') => ">>v",
-            ('1', '0') => ">v",
-            ('1', '1') => "",
-            ('1', '2') => ">",
-            ('1', '3') => ">>",
-            ('1', '4') => "^",
-            ('1', '5') => ">^",
-            ('1', '6') => ">>^",
-            ('1', '7') => "^^",
-            ('1', '8') => ">^^",
-            ('1', '9') => ">>^^",
+            ('1', 'A') => [">>v"],
+            ('1', '0') => [">v"],
+            ('1', '1') => [""],
+            ('1', '2') => [">"],
+            ('1', '3') => [">>"],
+            ('1', '4') => ["^"],
+            ('1', '5') => [">^", "^>"],
+            ('1', '6') => [">>^", "^>>"],
+            ('1', '7') => ["^^"],
+            ('1', '8') => [">^^", "^^>"],
+            ('1', '9') => [">>^^", "^^>>"],
 
-            ('2', 'A') => "v>",
-            ('2', '0') => "v",
-            ('2', '1') => "<",
-            ('2', '2') => "",
-            ('2', '3') => ">",
-            ('2', '4') => "<^",
-            ('2', '5') => "^",
-            ('2', '6') => ">^",
-            ('2', '7') => "<^^",
-            ('2', '8') => "^^",
-            ('2', '9') => ">^^",
+            ('2', 'A') => [">v", "v>"],
+            ('2', '0') => ["v"],
+            ('2', '1') => ["<"],
+            ('2', '2') => [""],
+            ('2', '3') => [">"],
+            ('2', '4') => ["<^", "^<"],
+            ('2', '5') => ["^"],
+            ('2', '6') => [">^", "^>"],
+            ('2', '7') => ["<^^", "^^<"],
+            ('2', '8') => ["^^"],
+            ('2', '9') => [">^^", "^^>"],
 
-            ('3', 'A') => "v",
-            ('3', '0') => "<v",
-            ('3', '1') => "<<",
-            ('3', '2') => "<",
-            ('3', '3') => "",
-            ('3', '4') => "<<^",
-            ('3', '5') => "<^",
-            ('3', '6') => "^",
-            ('3', '7') => "<<^^",
-            ('3', '8') => "<^^",
-            ('3', '9') => "^^",
+            ('3', 'A') => ["v"],
+            ('3', '0') => ["<v", "v<"],
+            ('3', '1') => ["<<"],
+            ('3', '2') => ["<"],
+            ('3', '3') => [""],
+            ('3', '4') => ["<<^", "^<<"],
+            ('3', '5') => ["<^", "^<"],
+            ('3', '6') => ["^"],
+            ('3', '7') => ["<<^^", "^^<<"],
+            ('3', '8') => ["<^^", "^^<"],
+            ('3', '9') => ["^^"],
 
-            ('4', 'A') => ">>vv",
-            ('4', '0') => ">vv",
-            ('4', '1') => "v",
-            ('4', '2') => "v>",
-            ('4', '3') => "v>>",
-            ('4', '4') => "",
-            ('4', '5') => ">",
-            ('4', '6') => ">>",
-            ('4', '7') => "^",
-            ('4', '8') => ">^",
-            ('4', '9') => ">>^",
+            ('4', 'A') => [">>vv"],
+            ('4', '0') => [">vv"],
+            ('4', '1') => ["v"],
+            ('4', '2') => [">v", "v>"],
+            ('4', '3') => [">>v", "v>>"],
+            ('4', '4') => [""],
+            ('4', '5') => [">"],
+            ('4', '6') => [">>"],
+            ('4', '7') => ["^"],
+            ('4', '8') => [">^", "^>"],
+            ('4', '9') => [">>^", "^>>"],
 
-            ('5', 'A') => "vv>",
-            ('5', '0') => "vv",
-            ('5', '1') => "<v",
-            ('5', '2') => "v",
-            ('5', '3') => "v>",
-            ('5', '4') => "<",
-            ('5', '5') => "",
-            ('5', '6') => ">",
-            ('5', '7') => "<^",
-            ('5', '8') => "^",
-            ('5', '9') => "^>",
+            ('5', 'A') => [">vv", "vv>"],
+            ('5', '0') => ["vv"],
+            ('5', '1') => ["<v", "v<"],
+            ('5', '2') => ["v"],
+            ('5', '3') => [">v", "v>"],
+            ('5', '4') => ["<"],
+            ('5', '5') => [""],
+            ('5', '6') => [">"],
+            ('5', '7') => ["<^", "^<"],
+            ('5', '8') => ["^"],
+            ('5', '9') => [">^", "^>"],
 
-            ('6', 'A') => "vv",
-            ('6', '0') => "<vv",
-            ('6', '1') => "<<v",
-            ('6', '2') => "<v",
-            ('6', '3') => "v",
-            ('6', '4') => "<<",
-            ('6', '5') => "<",
-            ('6', '6') => "",
-            ('6', '7') => "<<^",
-            ('6', '8') => "<^",
-            ('6', '9') => "^",
+            ('6', 'A') => ["vv"],
+            ('6', '0') => ["<vv", "vv<"],
+            ('6', '1') => ["<<v", "v<<"],
+            ('6', '2') => ["<v", "v<"],
+            ('6', '3') => ["v"],
+            ('6', '4') => ["<<"],
+            ('6', '5') => ["<"],
+            ('6', '6') => [""],
+            ('6', '7') => ["<<^", "^<<"],
+            ('6', '8') => ["<^", "^<"],
+            ('6', '9') => ["^"],
 
-            ('7', 'A') => ">>vvv",
-            ('7', '0') => ">vvv",
-            ('7', '1') => "vv",
-            ('7', '2') => "vv>",
-            ('7', '3') => "vv>>",
-            ('7', '4') => "v",
-            ('7', '5') => "v>",
-            ('7', '6') => "v>>",
-            ('7', '7') => "",
-            ('7', '8') => ">",
-            ('7', '9') => ">>",
+            ('7', 'A') => [">>vvv"],
+            ('7', '0') => [">vvv"],
+            ('7', '1') => ["vv"],
+            ('7', '2') => [">vv", "vv>"],
+            ('7', '3') => [">>vv", "vv>>"],
+            ('7', '4') => ["v"],
+            ('7', '5') => [">v", "v>"],
+            ('7', '6') => [">>v", "v>>"],
+            ('7', '7') => [""],
+            ('7', '8') => [">"],
+            ('7', '9') => [">>"],
 
-            ('8', 'A') => "vvv>",
-            ('8', '0') => "vvv",
-            ('8', '1') => "<vv",
-            ('8', '2') => "vv",
-            ('8', '3') => "vv>",
-            ('8', '4') => "<v",
-            ('8', '5') => "v",
-            ('8', '6') => "v>",
-            ('8', '7') => "<",
-            ('8', '8') => "",
-            ('8', '9') => ">",
+            ('8', 'A') => [">vvv", "vvv>"],
+            ('8', '0') => ["vvv"],
+            ('8', '1') => ["<vv", "vv<"],
+            ('8', '2') => ["vv"],
+            ('8', '3') => [">vv", "vv>"],
+            ('8', '4') => ["<v", "v<"],
+            ('8', '5') => ["v"],
+            ('8', '6') => [">v", "v>"],
+            ('8', '7') => ["<"],
+            ('8', '8') => [""],
+            ('8', '9') => [">"],
 
-            ('9', 'A') => "vvv",
-            ('9', '0') => "<vvv",
-            ('9', '1') => "<<vv",
-            ('9', '2') => "<vv",
-            ('9', '3') => "vv",
-            ('9', '4') => "<<v",
-            ('9', '5') => "<v",
-            ('9', '6') => "v",
-            ('9', '7') => "<<",
-            ('9', '8') => "<",
-            ('9', '9') => "",
+            ('9', 'A') => ["vvv"],
+            ('9', '0') => ["<vvv", "vvv<"],
+            ('9', '1') => ["<<vv", "vv<<"],
+            ('9', '2') => ["<vv", "vv<"],
+            ('9', '3') => ["vv"],
+            ('9', '4') => ["<<v", "v<<"],
+            ('9', '5') => ["<v", "v<"],
+            ('9', '6') => ["v"],
+            ('9', '7') => ["<<"],
+            ('9', '8') => ["<"],
+            ('9', '9') => [""],
 
             _ => throw new ArgumentOutOfRangeException()
         };
@@ -227,37 +217,37 @@ namespace AdventOfCode
         /// | < | v | > |
         /// +---+---+---+
         /// </summary>
-        private string DirectionPadSequence(char start, char end) => (start, end) switch
+        private static string[] DirectionPadSequences(char start, char end) => (start, end) switch
         {
-            ('A', '<') => "v<<",
-            ('A', 'v') => "v<",
-            ('A', '>') => "v",
-            ('A', '^') => "<",
-            ('A', 'A') => "",
+            ('A', '<') => ["v<<"],
+            ('A', 'v') => ["<v", "v<"],
+            ('A', '>') => ["v"],
+            ('A', '^') => ["<"],
+            ('A', 'A') => [""],
 
-            ('^', '<') => "v<",
-            ('^', 'v') => "v",
-            ('^', '>') => "v>",
-            ('^', '^') => "",
-            ('^', 'A') => ">",
+            ('^', '<') => ["v<"],
+            ('^', 'v') => ["v"],
+            ('^', '>') => [">v", "v>"],
+            ('^', '^') => [""],
+            ('^', 'A') => [">"],
 
-            ('v', '<') => "<",
-            ('v', 'v') => "",
-            ('v', '>') => ">",
-            ('v', '^') => "^",
-            ('v', 'A') => "^>",
+            ('v', '<') => ["<"],
+            ('v', 'v') => [""],
+            ('v', '>') => [">"],
+            ('v', '^') => ["^"],
+            ('v', 'A') => [">^", "^>"],
 
-            ('<', '<') => "",
-            ('<', 'v') => ">",
-            ('<', '>') => ">>",
-            ('<', '^') => ">^",
-            ('<', 'A') => ">>^",
+            ('<', '<') => [""],
+            ('<', 'v') => [">"],
+            ('<', '>') => [">>"],
+            ('<', '^') => [">^"],
+            ('<', 'A') => [">>^"],
 
-            ('>', '<') => "<<",
-            ('>', 'v') => "<",
-            ('>', '>') => "",
-            ('>', '^') => "^<",
-            ('>', 'A') => "^",
+            ('>', '<') => ["<<"],
+            ('>', 'v') => ["<"],
+            ('>', '>') => [""],
+            ('>', '^') => ["<^", "^<"],
+            ('>', 'A') => ["^"],
 
             _ => throw new ArgumentOutOfRangeException()
         };
