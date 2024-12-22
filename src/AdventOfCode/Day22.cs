@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using AdventOfCode.Utilities;
 
 namespace AdventOfCode
 {
@@ -16,44 +17,43 @@ namespace AdventOfCode
 
         public long Part2(string[] input)
         {
-            long[] seeds = input.Select(long.Parse).ToArray();
+            var results = new long[1 << 20];
+            var seen = new int[1 << 20];
 
-            (int Price, int Diff)[][] prices = seeds.Select(s => PriceSequence(s).ToArray()).ToArray();
+            int[] prices = new int[2001];
+            int[] diffs = new int[2001];
 
-            var results = new Dictionary<(int, int, int, int), long>();
-            int[] sequence = new int[4];
-
-            for (int i = 0; i < seeds.Length; i++)
+            foreach ((int id, long seed) in input.Select(long.Parse).Enumerate(start: 1))
             {
-                var seen = new HashSet<(int, int, int, int)>();
-                (int Price, int Diff)[] diffs = prices[i];
+                prices[0] = (int)seed % 10;
 
-                for (int j = 3; j < diffs.Length; j++)
+                foreach ((int i, long n) in NumberSequence(seed).Enumerate(start: 1))
                 {
-                    sequence[0] = diffs[j - 3].Diff;
-                    sequence[1] = diffs[j - 2].Diff;
-                    sequence[2] = diffs[j - 1].Diff;
-                    sequence[3] = diffs[j].Diff;
+                    prices[i] = (int)n % 10;
+                    diffs[i] = prices[i] - prices[i - 1];
+                }
 
-                    var key = (sequence[0], sequence[1], sequence[2], sequence[3]);
+                for (int i = 4; i < diffs.Length; i++)
+                {
+                    // store the 4 elements of the sequence as a 20bit number, 5 bits per value
+                    int sequence = ((diffs[i - 3] + 9) << 15)
+                                 | ((diffs[i - 2] + 9) << 10)
+                                 | ((diffs[i - 1] + 9) << 5)
+                                 | (diffs[i] + 9);
 
-                    if (!seen.Contains(key)) // make sure we only take the first instance of the sequence
+                    if (seen[sequence] != id) // make sure we only take the first instance of the sequence
                     {
-                        results[key] = results.GetValueOrDefault(key) + diffs[j].Price;
-                        seen.Add(key);
+                        results[sequence] += prices[i];
+                        seen[sequence] = id;
                     }
                 }
             }
 
-            //var foo = results[(-2, 1, -1, 3)];
-
-            return results.Values.Max();
+            return results.Max();
         }
 
         private static IEnumerable<long> NumberSequence(long seed)
         {
-            yield return seed;
-
             for (int i = 0; i < 2000; i++)
             {
                 seed ^= (seed * 64);
@@ -64,23 +64,6 @@ namespace AdventOfCode
                 seed %= 16777216;
 
                 yield return seed;
-            }
-        }
-
-        private static IEnumerable<(int Price, int Diff)> PriceSequence(long seed)
-        {
-            // why did I not just do this with zip...?
-
-            using IEnumerator<long> cursor = NumberSequence(seed).GetEnumerator();
-
-            cursor.MoveNext();
-            int previous = (int)(cursor.Current % 10);
-
-            while (cursor.MoveNext())
-            {
-                int price = (int)(cursor.Current % 10);
-                yield return (price, price - previous);
-                previous = price;
             }
         }
     }
