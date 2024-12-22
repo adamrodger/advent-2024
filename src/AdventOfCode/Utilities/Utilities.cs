@@ -48,9 +48,9 @@ namespace AdventOfCode.Utilities
             return value;
         }
 
-        public static IEnumerable<(int i, T item)> Enumerate<T>(this IEnumerable<T> @this)
+        public static IEnumerable<(int i, T item)> Enumerate<T>(this IEnumerable<T> @this, int start = 0)
         {
-            int i = 0;
+            int i = start;
 
             foreach (T item in @this)
             {
