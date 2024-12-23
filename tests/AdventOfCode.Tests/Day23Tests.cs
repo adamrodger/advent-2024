@@ -84,7 +84,7 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Part2_SampleInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = "co,de,ka,ta";
 
             var result = solver.Part2(GetSampleInput());
 
@@ -94,7 +94,7 @@ namespace AdventOfCode.Tests
         [Fact]
         public void Part2_RealInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = "av,ax,dg,di,dw,fa,ge,kh,ki,ot,qw,vz,yw";
 
             var result = solver.Part2(GetRealInput());
             output.WriteLine($"Day 23 - Part 2 - {result}");
