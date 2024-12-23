@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using AdventOfCode.Utilities;
 
@@ -58,10 +57,40 @@ namespace AdventOfCode
                 graph.GetOrCreate(elements[1], () => new List<string>()).Add(elements[0]);
             }
 
-            var cliques = new List<IImmutableSet<string>>();
-            BronKerbosch(graph, [], graph.Keys.ToImmutableSortedSet(), [], cliques);
+            List<string> biggest = [];
+            HashSet<string> visited = [];
 
-            IImmutableSet<string> biggest = cliques.MaxBy(c => c.Count);
+            foreach (string node in graph.Keys)
+            {
+                if (!visited.Add(node))
+                {
+                    // already part of another clique
+                    continue;
+                }
+
+                List<string> clique = [node];
+
+                foreach (string candidate in graph.Keys)
+                {
+                    if (visited.Contains(candidate))
+                    {
+                        // already part of another clique
+                        continue;
+                    }
+
+                    // if it's connected to every current member of the clique then it's allowed in
+                    if (clique.All(member => graph[member].Contains(candidate)))
+                    {
+                        clique.Add(candidate);
+                        visited.Add(candidate);
+                    }
+                }
+
+                if (clique.Count > biggest.Count)
+                {
+                    biggest = clique;
+                }
+            }
 
             return string.Join(',', biggest.Order());
         }
@@ -84,42 +113,6 @@ namespace AdventOfCode
             }
 
             return graph;
-        }
-
-        /// <summary>
-        /// Sort the graph into 'cliques', which are clusters in which every node is connected
-        /// to every other node.
-        /// 
-        /// Had to do some Googling for this one... Never heard of it before
-        /// </summary>
-        /// <param name="graph">Graph of node ID to the IDs of all connected nodes</param>
-        /// <param name="clique">Current clique being considered</param>
-        /// <param name="candidates">Candidate nodes to be added to the clique</param>
-        /// <param name="visited">Nodes already visited</param>
-        /// <param name="cliques">All cliques found</param>
-        private static void BronKerbosch(IDictionary<string, ICollection<string>> graph,
-                                         IImmutableSet<string> clique,
-                                         IImmutableSet<string> candidates,
-                                         IImmutableSet<string> visited,
-                                         ICollection<IImmutableSet<string>> cliques)
-        {
-            if (candidates.Count == 0)
-            {
-                cliques.Add(clique);
-                return;
-            }
-
-            foreach (string candidate in candidates.ToArray())
-            {
-                BronKerbosch(graph,
-                             clique.Add(candidate),
-                             candidates.Intersect(graph[candidate]),
-                             visited.Intersect(graph[candidate]),
-                             cliques);
-
-                candidates = candidates.Remove(candidate);
-                visited = visited.Add(candidate);
-            }
         }
     }
 }
