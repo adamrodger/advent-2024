@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using AdventOfCode.Utilities;
 
@@ -14,36 +12,24 @@ namespace AdventOfCode
     {
         public int Part1(string[] input)
         {
-            SortedDictionary<string, ICollection<string>> graph = new();
-            SortedSet<(string, string)> edges = [];
-
-            foreach (string line in input)
-            {
-                string[] elements = line.Split('-');
-                Debug.Assert(elements.Length == 2);
-
-                graph.GetOrCreate(elements[0], () => new SortedSet<string>()).Add(elements[1]);
-                graph.GetOrCreate(elements[1], () => new SortedSet<string>()).Add(elements[0]);
-
-                if (string.Compare(elements[0], elements[1], StringComparison.Ordinal) < 0)
-                {
-                    edges.Add((elements[0], elements[1]));
-                }
-                else
-                {
-                    edges.Add((elements[1], elements[0]));
-                }
-            }
+            SortedDictionary<string, ICollection<string>> graph = BuildGraph(input);
 
             int total = 0;
 
+            /* Look for triangles of interconnected nodes, i.e.
+
+                              node
+                             /    \
+                            /      \
+                          left -- right
+             */
             foreach (string node in graph.Keys)
             {
                 foreach (string left in graph[node].Where(l => string.CompareOrdinal(node, l) < 0))
                 {
                     foreach (string right in graph[left].Where(r => string.CompareOrdinal(left, r) < 0))
                     {
-                        if (!edges.Contains((node, right)))
+                        if (!graph[node].Contains(right))
                         {
                             continue;
                         }
@@ -57,8 +43,6 @@ namespace AdventOfCode
                 }
             }
 
-            // 148884 high
-            // 2819 high, but works for sample... Did a Contains instead of StartsWith... reading fail
             return total;
         }
 
@@ -69,10 +53,9 @@ namespace AdventOfCode
             foreach (string line in input)
             {
                 string[] elements = line.Split('-');
-                Debug.Assert(elements.Length == 2);
 
-                graph.GetOrCreate(elements[0], () => new SortedSet<string>()).Add(elements[1]);
-                graph.GetOrCreate(elements[1], () => new SortedSet<string>()).Add(elements[0]);
+                graph.GetOrCreate(elements[0], () => new List<string>()).Add(elements[1]);
+                graph.GetOrCreate(elements[1], () => new List<string>()).Add(elements[0]);
             }
 
             var cliques = new List<IImmutableSet<string>>();
@@ -84,6 +67,29 @@ namespace AdventOfCode
         }
 
         /// <summary>
+        /// Build the graph of every node to all the reachable nodes from that point
+        /// </summary>
+        /// <param name="input">Input edge descriptions</param>
+        /// <returns>Graph</returns>
+        private static SortedDictionary<string, ICollection<string>> BuildGraph(string[] input)
+        {
+            SortedDictionary<string, ICollection<string>> graph = new();
+
+            foreach (string line in input)
+            {
+                string[] elements = line.Split('-');
+
+                graph.GetOrCreate(elements[0], () => new List<string>()).Add(elements[1]);
+                graph.GetOrCreate(elements[1], () => new List<string>()).Add(elements[0]);
+            }
+
+            return graph;
+        }
+
+        /// <summary>
+        /// Sort the graph into 'cliques', which are clusters in which every node is connected
+        /// to every other node.
+        /// 
         /// Had to do some Googling for this one... Never heard of it before
         /// </summary>
         /// <param name="graph">Graph of node ID to the IDs of all connected nodes</param>
@@ -103,7 +109,7 @@ namespace AdventOfCode
                 return;
             }
 
-            foreach (var candidate in candidates.ToArray())
+            foreach (string candidate in candidates.ToArray())
             {
                 BronKerbosch(graph,
                              clique.Add(candidate),
