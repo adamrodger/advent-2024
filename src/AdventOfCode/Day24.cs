@@ -12,8 +12,42 @@ namespace AdventOfCode
     {
         public long Part1(string[] input)
         {
-            // this is topological sort, but I can't remember that and it's small enough to brute force
+            (Dictionary<string, bool> state, List<Rule> rules) = Parse(input);
+            
+            // 1604176604 low
+            // 23079013084 low .... use longs dummy
+            return Check(state, rules);
+        }
 
+        public int Part2(string[] input)
+        {
+            foreach (string line in input)
+            {
+                throw new NotImplementedException("Part 2 not implemented");
+            }
+
+            return 0;
+        }
+
+        public long Add(long x, long y, string[] input)
+        {
+            (Dictionary<string, bool> state, List<Rule> rules) = Parse(input);
+
+            for (int i = 0; i < 45; i++)
+            {
+                (x, long rem) = Math.DivRem(x, 2);
+                state[$"x{i:D2}"] = rem == 1;
+
+                (y, rem) = Math.DivRem(y, 2);
+                state[$"y{i:D2}"] = rem == 1;
+            }
+
+            long result = Check(state, rules);
+            return result;
+        }
+
+        private static (Dictionary<string, bool> State, List<Rule> Rules) Parse(string[] input)
+        {
             Dictionary<string, bool> state = input.TakeWhile(l => !string.IsNullOrEmpty(l))
                                                   .Select(line => line.Split(": "))
                                                   .ToDictionary(a => a[0], a => a[1][0] == '1');
@@ -28,6 +62,13 @@ namespace AdventOfCode
 
                 rules.Add(new Rule(parts[0], parts[2], type, parts[4]));
             }
+
+            return (state, rules);
+        }
+
+        private static long Check(Dictionary<string, bool> state, List<Rule> rules)
+        {
+            // this is topological sort, but I can't remember that and it's small enough to brute force
 
             while (rules.Any())
             {
@@ -58,19 +99,8 @@ namespace AdventOfCode
                 }
             }
 
-            // 1604176604 low
-            // 23079013084 low .... use longs dummy
+
             return result;
-        }
-
-        public int Part2(string[] input)
-        {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 2 not implemented");
-            }
-
-            return 0;
         }
 
         private enum RuleType

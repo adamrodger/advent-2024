@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -115,6 +116,82 @@ namespace AdventOfCode.Tests
             output.WriteLine($"Day 24 - Part 2 - {result}");
 
             Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData(0x7FFFFFFFFFF, 0, 0x7FFFFFFFFFF)] // 42 high bits
+        [InlineData(1, 2, 3)]
+        [InlineData(1, 0, 1)]
+        [InlineData(2, 0, 2)]
+        [InlineData(4, 0, 4)]
+        [InlineData(8, 0, 8)]
+        [InlineData(16, 0, 16)]
+        [InlineData(32, 0, 32)]
+        [InlineData(64, 0, 64)]
+        [InlineData(128, 0, 128)]
+        [InlineData(256, 0, 256)]
+        [InlineData(512, 0, 512)]
+        [InlineData(1 << 10, 0, 1 << 10)] // broken - htv,z10
+        [InlineData(1 << 11, 0, 1 << 11)]
+        [InlineData(1 << 12, 0, 1 << 12)]
+        [InlineData(1 << 13, 0, 1 << 13)]
+        [InlineData(1 << 14, 0, 1 << 14)]
+        [InlineData(1 << 15, 0, 1 << 15)]
+        [InlineData(1 << 16, 0, 1 << 16)]
+        [InlineData(1 << 17, 0, 1 << 17)]
+        [InlineData(1 << 18, 0, 1 << 18)]
+        [InlineData(1 << 19, 0, 1 << 19)]
+        [InlineData(1 << 20, 0, 1 << 20)]
+        [InlineData(1 << 21, 0, 1 << 21)] // broken - z21,nks
+        [InlineData(1 << 22, 0, 1 << 22)]
+        [InlineData(1 << 23, 0, 1 << 23)]
+        [InlineData(1 << 24, 0, 1 << 24)]
+        [InlineData(1 << 25, 0, 1 << 25)]
+        [InlineData(1 << 26, 0, 1 << 26)]
+        [InlineData(1 << 27, 0, 1 << 27)]
+        [InlineData(1 << 28, 0, 1 << 28)]
+        [InlineData(1 << 29, 0, 1 << 29)]
+        [InlineData(1 << 30, 0, 1 << 30)]
+        [InlineData(1L << 31, 0, 1L << 31)]
+        [InlineData(1L << 32, 0, 1L << 32)]
+        [InlineData(1L << 33, 0, 1L << 33)] // broken - z33,ghp
+        [InlineData(1L << 34, 0, 1L << 34)]
+        [InlineData(1L << 35, 0, 1L << 35)]
+        [InlineData(1L << 36, 0, 1L << 36)]
+        [InlineData(1L << 37, 0, 1L << 37)]
+        [InlineData(1L << 38, 0, 1L << 38)]
+        [InlineData(1L << 39, 0, 1L << 39)] // broken - cpm,z39
+        [InlineData(1L << 40, 0, 1L << 40)]
+        [InlineData(1L << 41, 0, 1L << 41)]
+        [InlineData(1L << 42, 0, 1L << 42)]
+        [InlineData(1L << 43, 0, 1L << 43)]
+        [InlineData(1L << 44, 0, 1L << 44)]
+        public void Add_WhenCalled_AddsInputs(long x, long y, long expected)
+        {
+            string[] input = File.ReadAllLines("inputs/day24.txt");
+            SwapOutputs(input, "z10", "htv");
+            SwapOutputs(input, "z21", "nks");
+            SwapOutputs(input, "z33", "ghp");
+            SwapOutputs(input, "z39", "cpm");
+
+            // cpm,ghp,htv,nks,z10,z21,z33,z39
+
+            long result = this.solver.Add(x, y, input);
+
+            Assert.Equal(expected, result);
+
+            result = this.solver.Add(y, x, input);
+
+            Assert.Equal(expected, result);
+        }
+
+        private static void SwapOutputs(string[] input, string left, string right)
+        {
+            int index1 = input.Index().First(l => l.Item.EndsWith(left)).Index;
+            int index2 = input.Index().First(l => l.Item.EndsWith(right)).Index;
+
+            input[index1] = input[index1][..^3] + right;
+            input[index2] = input[index2][..^3] + left;
         }
     }
 }
