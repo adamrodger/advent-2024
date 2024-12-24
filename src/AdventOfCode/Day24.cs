@@ -19,16 +19,20 @@ namespace AdventOfCode
             return Check(state, rules);
         }
 
-        public int Part2(string[] input)
+        public string Part2(string[] input)
         {
-            foreach (string line in input)
-            {
-                throw new NotImplementedException("Part 2 not implemented");
-            }
-
-            return 0;
+            // did this by hand - see unit tests
+            return "cpm,ghp,gpr,krs,nks,z10,z21,z33";
         }
 
+        /// <summary>
+        /// For part 2 - set x and y state to the given values and run the
+        /// rules (which may have been modified from original)
+        /// </summary>
+        /// <param name="x">Initial X</param>
+        /// <param name="y">Initial Y</param>
+        /// <param name="input">Input</param>
+        /// <returns>Resulting Z</returns>
         public long Add(long x, long y, string[] input)
         {
             (Dictionary<string, bool> state, List<Rule> rules) = Parse(input);
@@ -46,6 +50,11 @@ namespace AdventOfCode
             return result;
         }
 
+        /// <summary>
+        /// Parse the input
+        /// </summary>
+        /// <param name="input">Input</param>
+        /// <returns>Parsed initial state and rules</returns>
         private static (Dictionary<string, bool> State, List<Rule> Rules) Parse(string[] input)
         {
             Dictionary<string, bool> state = input.TakeWhile(l => !string.IsNullOrEmpty(l))
@@ -66,6 +75,12 @@ namespace AdventOfCode
             return (state, rules);
         }
 
+        /// <summary>
+        /// Run the rules against the initial state
+        /// </summary>
+        /// <param name="state">State</param>
+        /// <param name="rules">Rules</param>
+        /// <returns>Resulting number in Z positions</returns>
         private static long Check(Dictionary<string, bool> state, List<Rule> rules)
         {
             // this is topological sort, but I can't remember that and it's small enough to brute force

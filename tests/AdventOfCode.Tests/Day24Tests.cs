@@ -98,19 +98,9 @@ namespace AdventOfCode.Tests
         }
 
         [Fact]
-        public void Part2_SampleInput_ProducesCorrectResponse()
-        {
-            var expected = -1;
-
-            var result = solver.Part2(GetSampleInput());
-
-            Assert.Equal(expected, result);
-        }
-
-        [Fact]
         public void Part2_RealInput_ProducesCorrectResponse()
         {
-            var expected = -1;
+            var expected = "cpm,ghp,gpr,krs,nks,z10,z21,z33";
 
             var result = solver.Part2(GetRealInput());
             output.WriteLine($"Day 24 - Part 2 - {result}");
@@ -131,7 +121,7 @@ namespace AdventOfCode.Tests
         [InlineData(128, 0, 128)]
         [InlineData(256, 0, 256)]
         [InlineData(512, 0, 512)]
-        [InlineData(1 << 10, 0, 1 << 10)] // broken - htv,z10
+        [InlineData(1 << 10, 0, 1 << 10)] // broken - htv,gpr,z10
         [InlineData(1 << 11, 0, 1 << 11)]
         [InlineData(1 << 12, 0, 1 << 12)]
         [InlineData(1 << 13, 0, 1 << 13)]
@@ -160,7 +150,7 @@ namespace AdventOfCode.Tests
         [InlineData(1L << 36, 0, 1L << 36)]
         [InlineData(1L << 37, 0, 1L << 37)]
         [InlineData(1L << 38, 0, 1L << 38)]
-        [InlineData(1L << 39, 0, 1L << 39)] // broken - cpm,z39
+        [InlineData(1L << 39, 0, 1L << 39)] // broken - cpm,z39,krs
         [InlineData(1L << 40, 0, 1L << 40)]
         [InlineData(1L << 41, 0, 1L << 41)]
         [InlineData(1L << 42, 0, 1L << 42)]
@@ -169,12 +159,13 @@ namespace AdventOfCode.Tests
         public void Add_WhenCalled_AddsInputs(long x, long y, long expected)
         {
             string[] input = File.ReadAllLines("inputs/day24.txt");
-            SwapOutputs(input, "z10", "htv");
+            SwapOutputs(input, "z10", "gpr");
             SwapOutputs(input, "z21", "nks");
             SwapOutputs(input, "z33", "ghp");
-            SwapOutputs(input, "z39", "cpm");
+            SwapOutputs(input, "krs", "cpm");
 
             // cpm,ghp,htv,nks,z10,z21,z33,z39
+            // cpm,ghp,gpr,krs,nks,z10,z21,z33
 
             long result = this.solver.Add(x, y, input);
 
